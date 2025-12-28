@@ -100,33 +100,108 @@ rm backend/secrets/token.json
 
 ## Main flows
 
-### 1) Drive → Download → Ingest
+## Sample inputs/outputs
+## Sample inputs/outputs
+
+### Drive → ingest
+
+List PDFs:
 
 ```bash
 curl http://127.0.0.1:8000/drive/decks
-curl -X POST http://127.0.0.1:8000/drive/decks/{file_id}/download
-curl -X POST http://127.0.0.1:8000/ingest/pdf \
-  -H "Content-Type: application/json" \
-  -d '{"file_path":"backend/data/decks/{file_id}.pdf"}'
 ```
 
-### 2) Investor voice profiling
+Example response:
+
+```json
+[
+  {
+    "file_id": "1XyJFpPJTcR28nQVahUndRQMWZkV-Cfh7",
+    "name": "Sago Assigment (Nov 25).pdf",
+    "modifiedTime": "2025-12-28T03:34:37.000Z"
+  }
+]
+```
+
+Download a PDF:
+
+```bash
+curl -X POST http://127.0.0.1:8000/drive/decks/1XyJFpPJTcR28nQVahUndRQMWZkV-Cfh7/download
+```
+
+Example response:
+
+```json
+{
+  "file_id": "1XyJFpPJTcR28nQVahUndRQMWZkV-Cfh7",
+  "path": "backend/data/decks/1XyJFpPJTcR28nQVahUndRQMWZkV-Cfh7.pdf"
+}
+```
+
+Ingest the downloaded PDF:
+
+```bash
+curl -X POST http://127.0.0.1:8000/ingest/pdf \
+  -H "Content-Type: application/json" \
+  -d '{"file_path":"backend/data/decks/1XyJFpPJTcR28nQVahUndRQMWZkV-Cfh7.pdf"}'
+```
+
+Example response:
+
+```json
+{
+  "startup_id": "fa3e1cda-106d-437e-96de-f9179e29860d",
+  "startup_name": "Sago",
+  "interaction_id": "3acd8ab4-6034-4554-a787-7d100e8a77c2"
+}
+```
+
+### Investor voice
+
+Create an investor:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/investors \
   -H "Content-Type: application/json" \
-  -d '{"email":"you@domain.com","name":"You"}'
-
-curl -X POST "http://127.0.0.1:8000/investors/{investor_id}/build-voice?query=label:SENT"
+  -d '{"email":"investor@example.com","name":"Test Investor"}'
 ```
 
-### 3) Re-engagement decision + draft
+Example response:
+
+```json
+{
+  "id": "df122170-fa38-4573-aa45-ea79a53e74bc",
+  "email": "investor@example.com",
+  "name": "Test Investor",
+  "voice_guide": null,
+  "created_at": "2025-12-28T10:20:25.979400Z"
+}
+```
+
+Build voice guide:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/agent/reengage/{startup_id} \
+curl -X POST "http://127.0.0.1:8000/investors/df122170-fa38-4573-aa45-ea79a53e74bc/build-voice?query=label:SENT"
+```
+
+Example response:
+
+```json
+{
+  "investor_id": "df122170-fa38-4573-aa45-ea79a53e74bc",
+  "voice_guide": "Tone: Polite, direct, professional. Greeting style: Hi [Name], ..."
+}
+```
+
+### Re-engagement
+
+Trigger the agent:
+
+```bash
+curl -X POST http://127.0.0.1:8000/agent/reengage/599f94b9-1a80-430c-ae61-c085a7a48442 \
   -H "Content-Type: application/json" \
   -d '{
-    "investor_id":"{investor_id}",
+    "investor_id":"77b36c1b-2ac2-4167-9899-34aab6ba6b88",
     "signals":[
       {"type":"product","description":"Launched paid tier","score":30},
       {"type":"hiring","description":"Hired Head of Sales ex-Snowflake","score":25},
@@ -136,22 +211,14 @@ curl -X POST http://127.0.0.1:8000/agent/reengage/{startup_id} \
   }'
 ```
 
-## API endpoints (high level)
+Example response:
 
-- `GET /health`
-- `POST /startups`, `GET /startups`, `GET /startups/{startup_id}`
-- `POST /investors`, `GET /investors`
-- `POST /investors/{investor_id}/build-voice`, `GET /investors/{investor_id}/voice`
-- `POST /gmail/draft`
-- `GET /drive/decks`, `POST /drive/decks/{file_id}/download`
-- `POST /ingest/pdf`
-- `POST /agent/reengage/{startup_id}`, `GET /agent/reengagements`
-
-## Notes
-
-- `backend/data/` and `backend/secrets/` are local-only and excluded via `.gitignore`.
-- This is a prototype; auth, rate limits, and PII handling should be tightened for production.
-
-## License
-
-Internal prototype for evaluation.
+```json
+{
+  "draft_created": true,
+  "draft_id": "r-3054751566628671032",
+  "subject": "Reconnecting on Acme AI",
+  "body": "Hi [Name], ...",
+  "reason": "Signals observed: Launched paid tier, Hired Head of Sales ex-Snowflake, 10k GitHub stars. Total score is 75 and the threshold is 70."
+}
+```

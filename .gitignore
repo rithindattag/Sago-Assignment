@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Env/secrets
+.env
+backend/.env
+backend/secrets/token.json
+backend/secrets/credentials.json
+
+# Local data
+backend/data/
+
+# OS
+.DS_Store
+
+# Logs
+*.log

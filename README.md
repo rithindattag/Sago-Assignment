@@ -101,7 +101,6 @@ rm backend/secrets/token.json
 ## Main flows
 
 ## Sample inputs/outputs
-## Sample inputs/outputs
 
 ### Drive → ingest
 
